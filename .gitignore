@@ -28,4 +28,5 @@ Thumbs.db
 # Uploads / generated
 backend/uploads/
 backend/static/posters/
+backend/chroma_data/
 *.log
