@@ -57,13 +57,18 @@
           <p style="margin-bottom:8px; color:#888">请先在首页注册人脸信息</p>
           <div v-if="cameraError" style="padding:20px;text-align:center">
             <p style="color:#e6a23c;margin-bottom:12px">⚠️ {{ cameraError }}</p>
+            <el-button type="primary" @click="startCamera(checkinVideo)">🔄 重试</el-button>
           </div>
-          <video v-show="!cameraError" ref="checkinVideo" autoplay playsinline style="width:100%; height:260px; background:#000; border-radius:8px" />
+          <video v-show="!cameraError" ref="checkinVideo" autoplay playsinline
+            style="width:100%;max-width:500px;height:280px;background:#000;border-radius:8px;object-fit:cover" />
+          <p v-if="cameraReady && !cameraError" style="color:#67c23a;margin-top:4px">✅ 摄像头已就绪</p>
           <el-select v-model="faceActivityId" placeholder="选择活动" style="width:100%; margin-top:12px">
             <el-option v-for="a in activeActivities" :key="a.id" :label="a.title" :value="a.id" />
           </el-select>
-          <el-button type="primary" size="large" :loading="faceLoading" @click="captureAndCheckin" style="margin-top:12px; width:100%">
-            拍照签到
+          <el-button type="primary" size="large" :loading="faceLoading"
+            :disabled="!cameraReady" @click="captureAndCheckin"
+            style="margin-top:12px; width:100%">
+            {{ cameraReady ? '📷 拍照签到' : '⏳ 等待摄像头就绪...' }}
           </el-button>
           <p v-if="checkinMsg" style="margin-top:8px" :style="{color: checkinOk ? '#67c23a' : '#e6a23c'}">{{ checkinMsg }}</p>
         </el-card>
@@ -90,7 +95,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getActivities, faceRecognize, checkin, manualCheckin } from '../api'
@@ -116,6 +121,7 @@ const checkinMsg = ref('')
 const checkinOk = ref(false)
 const faceLoading = ref(false)
 const cameraError = ref('')
+const cameraReady = ref(false)
 let checkinStream = null
 
 // Records
@@ -160,8 +166,17 @@ const startCamera = async (videoEl) => {
       return null
     }
     const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' } })
+    // Set onloadedmetadata BEFORE assigning srcObject — otherwise the event can fire before we listen
+    const ready = new Promise((resolve) => {
+      videoEl.onloadedmetadata = () => {
+        videoEl.play().then(() => setTimeout(resolve, 800)).catch(() => resolve())
+      }
+    })
     videoEl.srcObject = stream
     cameraError.value = ''
+    await ready
+    cameraReady.value = true
+    checkinStream = stream
     return stream
   } catch (err) {
     if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
@@ -184,6 +199,7 @@ const startCamera = async (videoEl) => {
 const stopCamera = () => {
   if (checkinStream) { checkinStream.getTracks().forEach(t => t.stop()); checkinStream = null }
   if (checkinVideo.value) checkinVideo.value.srcObject = null
+  cameraReady.value = false
 }
 
 const captureFrame = (videoEl) => {
@@ -196,15 +212,24 @@ const captureFrame = (videoEl) => {
 
 const captureAndCheckin = async () => {
   if (!faceActivityId.value) return ElMessage.warning('请选择活动')
-  stopCamera()
-  checkinStream = await startCamera(checkinVideo.value)
-  if (!checkinStream) return
+  if (!cameraReady.value || !checkinStream) {
+    ElMessage.warning('摄像头未就绪，请稍后再试')
+    return
+  }
   faceLoading.value = true
+  checkinMsg.value = ''
   try {
     const base64 = captureFrame(checkinVideo.value)
     const { data: faceData } = await faceRecognize({ image_data: base64 })
     if (!faceData.success || !faceData.user_id) {
       checkinMsg.value = faceData.message || '人脸不匹配，请重试'
+      checkinOk.value = false
+      ElMessage.error(checkinMsg.value)
+      return
+    }
+    // Verify recognized face matches logged-in user
+    if (faceData.user_id !== userStore.userInfo.id) {
+      checkinMsg.value = '人脸与当前登录用户不匹配，请使用本人人脸签到'
       checkinOk.value = false
       ElMessage.error(checkinMsg.value)
       return
@@ -216,12 +241,33 @@ const captureAndCheckin = async () => {
   } catch (err) {
     const detail = err?.response?.data?.detail
     if (detail) ElMessage.error(detail)
-  } finally { faceLoading.value = false; stopCamera() }
+  } finally { faceLoading.value = false }
 }
+
+// Auto-start camera when switching to face tab
+watch(tab, async (val) => {
+  if (val === 'face') {
+    cameraError.value = ''
+    cameraReady.value = false
+    if (!checkinStream) {
+      // Need to wait for DOM to render video element
+      await new Promise(r => setTimeout(r, 200))
+      if (checkinVideo.value) {
+        checkinStream = await startCamera(checkinVideo.value)
+      }
+    }
+  } else {
+    stopCamera()
+  }
+})
 
 onMounted(() => {
   if (route.query.tab === 'face') tab.value = 'face'
   fetchActivities()
+})
+
+onBeforeUnmount(() => {
+  stopCamera()
 })
 </script>
 

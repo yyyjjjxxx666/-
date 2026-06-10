@@ -75,6 +75,12 @@ def list_clubs(status: str = None, search: str = None, user: Optional[User] = De
     return q.all()
 
 
+@router.get("/my-pending-requests")
+def my_pending_requests(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    reqs = db.query(JoinRequest).filter_by(user_id=user.id, status="pending").all()
+    return [r.club_id for r in reqs]
+
+
 @router.get("/{club_id}", response_model=ClubInfo)
 def get_club(club_id: int, db: Session = Depends(get_db)):
     club = db.query(Club).get(club_id)

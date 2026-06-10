@@ -283,6 +283,9 @@ const captureAndRegisterFace = async () => {
 const fetchUserData = async () => {
   try {
     const { data } = await getMe()
+    // Sync fresh data back to userStore so other components see the latest club_id/role
+    userStore.userInfo = { ...userStore.userInfo, ...data }
+    localStorage.setItem('userInfo', JSON.stringify(userStore.userInfo))
     userInterests.value = data.interests || ''
     if (data.interests) interestInput.value = data.interests
     faceRegistered.value = data.face_registered
@@ -292,6 +295,8 @@ const fetchUserData = async () => {
     // Fetch my club if I have one
     if (data.club_id) {
       try { const c = await getClub(data.club_id); myClub.value = c.data } catch { myClub.value = null }
+    } else {
+      myClub.value = null
     }
   } catch {}
 }

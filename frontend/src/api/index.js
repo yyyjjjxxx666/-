@@ -106,6 +106,7 @@ export const uploadFile = (file) => {
 
 // ── Join Requests ──
 export const sendJoinRequest = (clubId) => api.post(`/clubs/${clubId}/join`)
+export const getMyPendingRequests = () => api.get('/clubs/my-pending-requests')
 export const getJoinRequests = (clubId, params) => api.get(`/clubs/${clubId}/join-requests`, { params })
 export const handleJoinRequest = (clubId, requestId, data) => api.put(`/clubs/${clubId}/join-requests/${requestId}`, data)
 export const kickMember = (clubId, userId) => api.post(`/clubs/${clubId}/kick/${userId}`)

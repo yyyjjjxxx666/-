@@ -126,7 +126,7 @@ class StarRatingRequest(BaseModel):
 
 # ── Face ──
 class FaceRegisterRequest(BaseModel):
-    user_id: int
+    user_id: Optional[int] = None
     image_data: Optional[str] = None  # base64
 
 

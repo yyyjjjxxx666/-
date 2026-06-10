@@ -139,7 +139,7 @@
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getClubs, createClub, approveClub, aiGenerateCopy, sendJoinRequest, getJoinRequests, handleJoinRequest, kickMember, transferClub, dissolveClub, getClubMembers, uploadFile, aiGeneratePosterPreview } from '../api'
+import { getClubs, createClub, approveClub, aiGenerateCopy, sendJoinRequest, getMyPendingRequests, getJoinRequests, handleJoinRequest, kickMember, transferClub, dissolveClub, getClubMembers, uploadFile, aiGeneratePosterPreview } from '../api'
 import { useUserStore } from '../stores/user'
 
 const userStore = useUserStore()
@@ -201,15 +201,8 @@ const hasPendingRequest = (row) => myPendingRequests.value.includes(row.id)
 const fetchMyPendingRequests = async () => {
   if (userStore.role !== 'member' || !userStore.userInfo.id) return
   try {
-    const ids = []
-    const { data: allClubs } = await getClubs()
-    for (const c of allClubs) {
-      try {
-        const { data } = await getJoinRequests(c.id, { status: 'pending' })
-        if (data.some(r => r.user_id === userStore.userInfo.id)) ids.push(c.id)
-      } catch {}
-    }
-    myPendingRequests.value = ids
+    const { data } = await getMyPendingRequests()
+    myPendingRequests.value = data
   } catch {}
 }
 
