@@ -4,10 +4,11 @@ from typing import List, Optional
 from datetime import datetime
 
 from ..models import get_db
-from ..models.user import User
+from ..models.user import User, UserRole
 from ..models.club import Club, ClubStatus, JoinRequest
 from ..schemas import ClubCreate, ClubInfo, TransferRequest, JoinRequestAction
 from ..models.notification import Notification
+from ..services.semantic_search import index_club, remove_entity
 from ..core.security import decode_access_token
 from ..services.star_rating import calculate_star_rating
 
@@ -48,6 +49,7 @@ def create_club(data: ClubCreate, user: User = Depends(get_current_user), db: Se
     db.commit()
     db.refresh(club)
     calculate_star_rating(db, club.id)
+    index_club(club)
     return club
 
 
@@ -100,8 +102,9 @@ def approve_club(club_id: int, user: User = Depends(get_current_user), db: Sessi
     # Promote the club president
     president = db.query(User).get(club.president_id)
     if president and president.role.value == "member":
-        president.role = "president"
+        president.role = UserRole.PRESIDENT
     db.commit()
+    index_club(club)
     return {"message": "审批通过"}
 
 
@@ -129,7 +132,7 @@ def leave_club(club_id: int, user: User = Depends(get_current_user), db: Session
         raise HTTPException(status_code=400, detail="负责人不能直接退出，请先转让负责人身份")
 
     user.club_id = None
-    user.role = "member"
+    user.role = UserRole.MEMBER
     club.member_count = max(0, club.member_count - 1)
     # Notify all members
     for member in db.query(User).filter(User.club_id == club_id).all():
@@ -159,9 +162,9 @@ def transfer_presidency(club_id: int, data: TransferRequest, user: User = Depend
     # Transfer
     club.president_id = new_president.id
     # Demote old president to member
-    user.role = "member"
+    user.role = UserRole.MEMBER
     # Promote new president
-    new_president.role = "president"
+    new_president.role = UserRole.PRESIDENT
     db.commit()
 
     # Notify all members
@@ -219,7 +222,7 @@ def approve_dissolve(club_id: int, user: User = Depends(get_current_user), db: S
     # Clear all members
     for member in db.query(User).filter(User.club_id == club_id).all():
         member.club_id = None
-        member.role = "member"
+        member.role = UserRole.MEMBER
     db.flush()
     # Delete related data
     db.query(JoinRequest).filter(JoinRequest.club_id == club_id).delete()
@@ -338,7 +341,7 @@ def kick_member(club_id: int, user_id: int, user: User = Depends(get_current_use
         raise HTTPException(status_code=400, detail="不能踢出社团负责人")
 
     target.club_id = None
-    target.role = "member"
+    target.role = UserRole.MEMBER
     club.member_count = max(0, club.member_count - 1)
 
     db.add(Notification(

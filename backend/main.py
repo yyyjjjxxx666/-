@@ -1,4 +1,8 @@
 import os
+# Prevent HuggingFace from trying to connect (blocked in China, model cached locally)
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+
 import sys
 import webbrowser
 import threading

@@ -40,6 +40,9 @@
       </el-main>
     </el-container>
 
+    <!-- AI Assistant -->
+    <AIAssistant />
+
     <!-- Reset Password Dialog -->
     <el-dialog v-model="passwordVisible" title="重置密码" width="400px">
       <el-form :model="passwordForm">
@@ -60,6 +63,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '../stores/user'
 import { getUnreadCount, resetPassword, leaveClub, getPendingCount } from '../api'
+import AIAssistant from '../components/AIAssistant.vue'
 
 const router = useRouter()
 const route = useRoute()

@@ -33,6 +33,36 @@
           </el-card>
         </el-col>
       </el-row>
+
+      <!-- AI Insights Card -->
+      <el-card v-if="aiInsights" style="margin-top:20px" class="ai-insights-card">
+        <template #header>
+          <span>🤖 AI 智能洞察</span>
+          <el-button size="small" style="float:right" :loading="insightsLoading" @click="fetchAIInsights">🔄 刷新</el-button>
+        </template>
+        <p class="insight-summary">{{ aiInsights.summary }}</p>
+        <el-row :gutter="16" style="margin-top:12px">
+          <el-col :span="8">
+            <div class="insight-section">
+              <h4>✨ 亮点</h4>
+              <ul><li v-for="(h, i) in aiInsights.highlights" :key="'h'+i">{{ h }}</li></ul>
+            </div>
+          </el-col>
+          <el-col :span="8">
+            <div class="insight-section">
+              <h4>⚠️ 需关注</h4>
+              <ul><li v-for="(c, i) in aiInsights.concerns" :key="'c'+i">{{ c || '暂无特别关注' }}</li></ul>
+            </div>
+          </el-col>
+          <el-col :span="8">
+            <div class="insight-section">
+              <h4>💡 建议</h4>
+              <ul><li v-for="(s, i) in aiInsights.suggestions" :key="'s'+i">{{ s }}</li></ul>
+            </div>
+          </el-col>
+        </el-row>
+        <p class="insight-trend">{{ aiInsights.trend_note }}</p>
+      </el-card>
     </template>
 
     <!-- Non-Admin View -->
@@ -132,9 +162,16 @@
         </template>
         <el-row :gutter="12">
           <el-col v-for="rec in recommendations" :key="rec.club_id" :span="8">
-            <el-card shadow="hover" class="rec-card" @click="$router.push(`/clubs/${rec.club_id}`)">
-              <h4>{{ rec.club_name }}</h4>
-              <p class="rec-reason">{{ rec.reason }}</p>
+            <el-card shadow="hover" class="rec-card">
+              <div @click="$router.push(`/clubs/${rec.club_id}`)" style="cursor:pointer">
+                <h4>{{ rec.club_name }}</h4>
+                <el-tag v-if="rec.category" size="small" :type="categoryTagType(rec.category)" style="margin-bottom:4px">{{ rec.category }}</el-tag>
+                <p class="rec-reason">{{ rec.reason }}</p>
+              </div>
+              <div class="rec-feedback">
+                <el-button size="small" :type="rec._fb === 'liked' ? 'primary' : 'default'" circle @click.stop="handleRecFeedback(rec, 'liked')">👍</el-button>
+                <el-button size="small" :type="rec._fb === 'disliked' ? 'danger' : 'default'" circle @click.stop="handleRecFeedback(rec, 'disliked')">👎</el-button>
+              </div>
             </el-card>
           </el-col>
         </el-row>
@@ -169,7 +206,7 @@ import { GridComponent, TooltipComponent, TitleComponent, LegendComponent } from
 import { CanvasRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
 import { useUserStore } from '../stores/user'
-import { getClub, getActivities, getRecentActivities, getMe, updateInterests, faceRegister, aiRecommend, getAdminStats } from '../api'
+import { getClub, getActivities, getRecentActivities, getMe, updateInterests, faceRegister, aiRecommend, aiRecommendFeedback, getAdminStats, getAIInsights } from '../api'
 
 use([BarChart, PieChart, GridComponent, TooltipComponent, TitleComponent, LegendComponent, CanvasRenderer])
 
@@ -183,6 +220,8 @@ const statusLabel = (s) => ({ pending: '待审批', approved: '已通过', regis
 
 // Admin stats
 const stats = reactive({ clubs: 0, activities: 0, members: 0, ongoing_activities: 0, approved_clubs: 0, pending_clubs: 0, presidents: 0 })
+const aiInsights = ref(null)
+const insightsLoading = ref(false)
 const clubChartOption = computed(() => ({
   tooltip: { trigger: 'axis' },
   xAxis: { type: 'category', data: ['已通过', '待审批', '总数'] },
@@ -224,6 +263,14 @@ const fetchAdminStats = async () => {
     const { data } = await getAdminStats()
     Object.assign(stats, data)
   } catch {}
+}
+
+const fetchAIInsights = async () => {
+  insightsLoading.value = true
+  try {
+    const { data } = await getAIInsights()
+    aiInsights.value = data.insights
+  } catch {} finally { insightsLoading.value = false }
 }
 
 // Face camera
@@ -320,8 +367,21 @@ const refreshRecommendations = async () => {
   finally { refreshingRecs.value = false }
 }
 
+const categoryTagType = (cat) => {
+  const map = { '兴趣匹配': 'success', '热门推荐': 'warning', '探索新领域': 'info', '高评分推荐': '', '基于你的活动偏好': 'primary', '综合推荐': 'info' }
+  return map[cat] || 'info'
+}
+
+const handleRecFeedback = async (rec, type) => {
+  if (rec._fb === type) { rec._fb = null; return }
+  rec._fb = type
+  try {
+    await aiRecommendFeedback({ user_id: userStore.userInfo.id, club_id: rec.club_id, feedback: type === 'liked' ? 'liked' : 'disliked' })
+  } catch {}
+}
+
 onMounted(() => {
-  if (userStore.role === 'admin') fetchAdminStats()
+  if (userStore.role === 'admin') { fetchAdminStats(); fetchAIInsights() }
   else fetchUserData()
   fetchRecentActivities()
 })
@@ -340,12 +400,20 @@ onBeforeUnmount(() => {
 .id-label { color: #666; font-size: 14px; }
 .id-value { font-size: 28px; font-weight: bold; color: #1e3c72; margin-left: 8px; }
 .interests-display { display: flex; align-items: center; flex-wrap: wrap; }
-.rec-card { cursor: pointer; border: 1px solid #e8e8e8; transition: all .2s; }
+.rec-card { border: 1px solid #e8e8e8; transition: all .2s; }
 .rec-card:hover { border-color: #1e3c72; box-shadow: 0 2px 8px rgba(30,60,114,.15); }
 .rec-card h4 { margin: 0 0 8px; }
-.rec-reason { color: #888; font-size: 13px; margin: 0; }
+.rec-reason { color: #888; font-size: 13px; margin: 4px 0; }
+.rec-feedback { margin-top: 8px; display: flex; gap: 4px; justify-content: flex-end; }
 .activity-card { cursor: pointer; border: 1px solid #e8e8e8; transition: all .2s; }
 .activity-card:hover { border-color: #1e3c72; box-shadow: 0 2px 8px rgba(30,60,114,.15); }
 .activity-card h4 { margin: 0 0 8px; }
 .act-location, .act-time { color: #888; font-size: 13px; margin: 4px 0; }
+.ai-insights-card { border-left: 4px solid #1e3c72; }
+.insight-summary { font-size: 15px; line-height: 1.8; color: #333; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+.insight-section { padding: 8px 0; }
+.insight-section h4 { margin: 0 0 8px; font-size: 14px; }
+.insight-section ul { margin: 0; padding-left: 20px; }
+.insight-section li { color: #666; font-size: 13px; line-height: 1.8; }
+.insight-trend { margin-top: 12px; padding: 8px 12px; background: #f0f7ff; border-radius: 6px; color: #1e3c72; font-size: 13px; }
 </style>

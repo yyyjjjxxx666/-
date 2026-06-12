@@ -5,8 +5,10 @@ from typing import List, Optional
 from ..models import get_db
 from ..models.user import User
 from ..models.activity import Activity, ActivityStatus, ActivityRegistration, Checkin
+from ..models.club import Club
 from ..schemas import ActivityCreate, ActivityInfo
 from ..core.security import decode_access_token
+from ..services.semantic_search import index_activity
 
 router = APIRouter(tags=["活动管理"])
 
@@ -37,6 +39,9 @@ def create_activity(data: ActivityCreate, user: User = Depends(get_current_user)
     db.add(activity)
     db.commit()
     db.refresh(activity)
+    # Index for semantic search
+    club = db.query(Club).filter(Club.id == activity.club_id).first()
+    index_activity(activity, club.name if club else "")
     return activity
 
 

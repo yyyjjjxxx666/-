@@ -22,7 +22,15 @@
               <div class="rank">#{{ i + 1 }}</div>
               <div class="info">
                 <h3>{{ item.club_name || '社团 #' + item.club_id }}</h3>
+                <el-tag v-if="item.category" size="small" :type="categoryTagType(item.category)" style="margin-bottom:4px">{{ item.category }}</el-tag>
                 <p class="reason">{{ item.reason }}</p>
+                <div v-if="item.highlights && item.highlights.length" class="highlights">
+                  <el-tag v-for="h in item.highlights" :key="h" size="small" effect="plain" style="margin-right:4px">✨ {{ h }}</el-tag>
+                </div>
+              </div>
+              <div class="rec-feedback">
+                <el-button size="small" :type="item._fb === 'liked' ? 'primary' : 'default'" circle @click.stop="handleRecFeedback(item, 'liked')">👍</el-button>
+                <el-button size="small" :type="item._fb === 'disliked' ? 'danger' : 'default'" circle @click.stop="handleRecFeedback(item, 'disliked')">👎</el-button>
               </div>
             </el-card>
           </div>
@@ -111,7 +119,7 @@
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
-import { aiRecommend, aiGenerateCopy, kbAddDoc, kbQuery, kbDeleteDoc, kbListDocs, kbStats, kbAsk } from '../api'
+import { aiRecommend, aiRecommendFeedback, aiGenerateCopy, kbAddDoc, kbQuery, kbDeleteDoc, kbListDocs, kbStats, kbAsk } from '../api'
 import { useUserStore } from '../stores/user'
 
 const userStore = useUserStore()
@@ -143,6 +151,19 @@ const handleCopy = async () => {
     const { data } = await aiGenerateCopy({ prompt: copyPrompt.value })
     generatedCopy.value = data.text
   } catch {} finally { copyLoading.value = false }
+}
+
+const categoryTagType = (cat) => {
+  const map = { '兴趣匹配': 'success', '热门推荐': 'warning', '探索新领域': 'info', '高评分推荐': '', '基于你的活动偏好': 'primary', '综合推荐': 'info' }
+  return map[cat] || 'info'
+}
+
+const handleRecFeedback = async (item, type) => {
+  if (item._fb === type) { item._fb = null; return }
+  item._fb = type
+  try {
+    await aiRecommendFeedback({ user_id: userStore.userInfo.id, club_id: item.club_id, feedback: type === 'liked' ? 'liked' : 'disliked' })
+  } catch {}
 }
 
 // ── Knowledge Base ──
@@ -204,7 +225,10 @@ onMounted(fetchKBDocs)
 .result-card { display: flex; gap: 16px; align-items: center; }
 .rank { font-size: 24px; font-weight: bold; color: #1e3c72; min-width: 40px; }
 .info h3 { margin: 0 0 4px; }
-.reason { color: #666; font-size: 14px; }
+.reason { color: #666; font-size: 14px; margin: 4px 0; }
+.highlights { margin-top: 6px; }
+.rec-feedback { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+.rec-feedback .el-button { margin-left: 0; }
 .copy-result { margin-top: 12px; padding: 16px; background: #f5f5f5; border-radius: 8px; white-space: pre-wrap; }
 .kb-answer { margin-top: 12px; padding: 16px; background: #f0f7ff; border-radius: 8px; }
 .answer-label { font-weight: bold; margin-bottom: 8px; }

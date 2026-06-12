@@ -57,6 +57,11 @@ export const aiRecommend = (data) => api.post('/ai/recommend', data)
 export const aiGenerateCopy = (data) => api.post('/ai/generate-copy', data)
 export const aiGeneratePoster = (data) => api.post('/ai/generate-poster-content', data)
 export const aiStarRating = (data) => api.post('/ai/star-rating', data)
+export const aiRecommendFeedback = (data) => api.post('/ai/recommend/feedback', data)
+export const aiRecommendActivities = (data) => api.post('/ai/activities/recommend', data)
+export const aiAssistantChat = (q) => fetch(`/api/ai/assistant/chat?q=${encodeURIComponent(q)}`, {
+  headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
+})
 
 // ── Face ──
 export const faceRegister = (data) => api.post('/ai/face-register', data)
@@ -70,11 +75,22 @@ export const markAllRead = () => api.put('/notifications/read-all')
 export const deleteReadNotifications = () => api.delete('/notifications/read')
 export const getUnreadCount = () => api.get('/notifications/unread-count')
 export const aiGenerateNotification = (data) => api.post('/notifications/ai-generate', data)
+export const aiNotificationDigest = () => api.get('/notifications/ai-digest')
+
+// ── Semantic Search ──
+export const aiSearch = (params) => api.get('/ai/search', { params })
+export const aiSearchReindex = () => api.post('/ai/search/reindex')
+
+// ── AI Content Generation ──
+export const aiSuggestTags = (data) => api.post('/ai/suggest-tags', data)
+export const aiGenerateDescription = (data) => api.post('/ai/generate-description', data)
+export const aiGenerateActivitySummary = (data) => api.post('/ai/generate-activity-summary', data)
 
 // ── Admin ──
 export const getPendingItems = () => api.get('/admin/pending-items')
 export const getPendingCount = () => api.get('/admin/pending-count')
 export const getAdminStats = () => api.get('/admin/stats')
+export const getAIInsights = () => api.get('/admin/ai-insights')
 export const approveActivityApi = (id) => api.put(`/admin/activities/${id}/approve`)
 export const rejectActivityApi = (id) => api.put(`/admin/activities/${id}/reject`)
 export const rejectClubApi = (id) => api.put(`/admin/clubs/${id}/reject`)
