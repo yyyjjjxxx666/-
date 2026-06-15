@@ -13,7 +13,7 @@
 
     <!-- Table Card -->
     <div class="glass-card table-card" style="cursor:default">
-      <el-table :data="activities" border stripe v-loading="loading" class="modern-table">
+      <el-table :data="activities" border v-loading="loading" class="modern-table">
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="title" label="活动名称">
           <template #default="{ row }">

@@ -18,7 +18,7 @@
 
     <!-- Table Card -->
     <div class="glass-card table-card" style="cursor:default">
-      <el-table :data="clubs" border stripe v-loading="loading" class="modern-table">
+      <el-table :data="clubs" border v-loading="loading" class="modern-table">
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="name" label="社团名称">
           <template #default="{ row }">
@@ -118,7 +118,7 @@
       </div>
       <el-tabs v-model="manageTab">
         <el-tab-pane label="成员管理" name="members">
-          <el-table :data="clubMembers" border stripe max-height="300" empty-text="暂无成员">
+          <el-table :data="clubMembers" border max-height="300" empty-text="暂无成员">
             <el-table-column prop="id" label="ID" width="60" />
             <el-table-column prop="real_name" label="姓名" />
             <el-table-column prop="role" label="角色" width="100">
@@ -138,7 +138,7 @@
           </el-table>
         </el-tab-pane>
         <el-tab-pane label="入社申请" name="requests">
-          <el-table :data="joinRequests" border stripe max-height="300" empty-text="暂无待审批申请">
+          <el-table :data="joinRequests" border max-height="300" empty-text="暂无待审批申请">
             <el-table-column prop="user_name" label="申请人" />
             <el-table-column prop="created_at" label="申请时间" width="160" />
             <el-table-column label="操作" width="180">
