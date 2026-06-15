@@ -1,9 +1,12 @@
 <template>
-  <router-view />
+  <router-view v-slot="{ Component, route }">
+    <transition name="page-fade" mode="out-in">
+      <component :is="Component" :key="route.path" />
+    </transition>
+  </router-view>
 </template>
 
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', Arial, sans-serif; }
-#app { min-height: 100vh; background: #f0f2f5; }
+/* Global styles are now in styles/global.css */
+/* App.vue only handles page transitions */
 </style>

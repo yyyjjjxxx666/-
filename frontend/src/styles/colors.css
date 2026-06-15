@@ -1,0 +1,96 @@
+/* ============================================
+   Color Palette — Modern Purple Theme
+   ============================================ */
+
+:root {
+  /* ── Primary: Purple (#7C3AED) ── */
+  --color-primary-50: #F5F3FF;
+  --color-primary-100: #EDE9FE;
+  --color-primary-200: #DDD6FE;
+  --color-primary-300: #C4B5FD;
+  --color-primary-400: #A78BFA;
+  --color-primary-500: #8B5CF6;
+  --color-primary-600: #7C3AED;
+  --color-primary-700: #6D28D9;
+  --color-primary-800: #5B21B6;
+  --color-primary-900: #4C1D95;
+
+  /* ── Accent: Orange (#F97316) ── */
+  --color-accent-50: #FFF7ED;
+  --color-accent-100: #FFEDD5;
+  --color-accent-200: #FED7AA;
+  --color-accent-300: #FDBA74;
+  --color-accent-400: #FB923C;
+  --color-accent-500: #F97316;
+  --color-accent-600: #EA580C;
+
+  /* ── Success: Emerald (#10B981) ── */
+  --color-success-50: #ECFDF5;
+  --color-success-100: #D1FAE5;
+  --color-success-400: #34D399;
+  --color-success-500: #10B981;
+  --color-success-600: #059669;
+
+  /* ── Warning: Amber (#F59E0B) ── */
+  --color-warning-50: #FFFBEB;
+  --color-warning-100: #FEF3C7;
+  --color-warning-400: #FBBF24;
+  --color-warning-500: #F59E0B;
+  --color-warning-600: #D97706;
+
+  /* ── Danger: Red (#EF4444) ── */
+  --color-danger-50: #FEF2F2;
+  --color-danger-100: #FEE2E2;
+  --color-danger-400: #F87171;
+  --color-danger-500: #EF4444;
+  --color-danger-600: #DC2626;
+
+  /* ── Info: Sky (#0EA5E9) ── */
+  --color-info-50: #F0F9FF;
+  --color-info-100: #E0F2FE;
+  --color-info-400: #38BDF8;
+  --color-info-500: #0EA5E9;
+  --color-info-600: #0284C7;
+
+  /* ── Neutral: Slate (for depth layering) ── */
+  --color-gray-25: #FCFCFD;
+  --color-gray-50: #F8FAFC;
+  --color-gray-100: #F1F5F9;
+  --color-gray-200: #E2E8F0;
+  --color-gray-300: #CBD5E1;
+  --color-gray-400: #94A3B8;
+  --color-gray-500: #64748B;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1E293B;
+  --color-gray-900: #0F172A;
+  --color-gray-950: #020617;
+
+  /* ── Semantic Tokens (Light Mode) ── */
+  --bg-primary: #FAF5FF;
+  --bg-secondary: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #FFFFFF;
+  --bg-sidebar: rgba(255, 255, 255, 0.82);
+  --bg-header: rgba(255, 255, 255, 0.78);
+  --bg-input: #F8FAFC;
+  --bg-overlay: rgba(15, 23, 42, 0.4);
+
+  --text-primary: #4C1D95;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --text-inverse: #FFFFFF;
+  --text-link: #7C3AED;
+
+  --border-color: #E2E8F0;
+  --border-light: rgba(226, 232, 240, 0.6);
+  --border-accent: rgba(124, 58, 237, 0.3);
+
+  /* ── Gradient Presets ── */
+  --gradient-primary: linear-gradient(135deg, #7C3AED, #A78BFA);
+  --gradient-primary-strong: linear-gradient(135deg, #6D28D9, #7C3AED);
+  --gradient-accent: linear-gradient(135deg, #F97316, #FB923C);
+  --gradient-page: linear-gradient(135deg, #FAF5FF 0%, #F8FAFC 50%, #F0F9FF 100%);
+  --gradient-card-accent: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(167, 139, 250, 0.04));
+  --gradient-glow: radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.12), transparent 60%);
+}

@@ -1,0 +1,128 @@
+/* ============================================
+   Dark Mode Overrides
+   ============================================ */
+
+[data-theme="dark"] {
+  /* ── Semantic Tokens (Dark Mode) ── */
+  --bg-primary: #0F172A;
+  --bg-secondary: #1E293B;
+  --bg-card: rgba(30, 41, 59, 0.75);
+  --bg-card-hover: rgba(30, 41, 59, 0.9);
+  --bg-sidebar: rgba(15, 23, 42, 0.85);
+  --bg-header: rgba(15, 23, 42, 0.78);
+  --bg-input: #1E293B;
+  --bg-overlay: rgba(2, 6, 23, 0.6);
+
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-inverse: #0F172A;
+  --text-link: #A78BFA;
+
+  --border-color: rgba(148, 163, 184, 0.12);
+  --border-light: rgba(148, 163, 184, 0.08);
+  --border-accent: rgba(167, 139, 250, 0.35);
+
+  /* ── Gradients (dark-adapted) ── */
+  --gradient-primary: linear-gradient(135deg, #A78BFA, #7C3AED);
+  --gradient-primary-strong: linear-gradient(135deg, #C4B5FD, #8B5CF6);
+  --gradient-accent: linear-gradient(135deg, #FB923C, #F97316);
+  --gradient-page: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
+  --gradient-card-accent: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(167, 139, 250, 0.06));
+  --gradient-glow: radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.2), transparent 60%);
+
+  /* ── Shadows (dark-adapted: lighter, more diffuse) ── */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6), 0 8px 16px rgba(0, 0, 0, 0.3);
+  --shadow-2xl: 0 24px 64px rgba(0, 0, 0, 0.7), 0 12px 24px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 8px 30px rgba(124, 58, 237, 0.25), 0 4px 8px rgba(0, 0, 0, 0.4);
+
+  /* ── Scrollbar ── */
+  color-scheme: dark;
+}
+
+/* ── Dark Glass Overrides ── */
+[data-theme="dark"] .glass {
+  background: rgba(30, 41, 59, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+[data-theme="dark"] .glass-strong {
+  background: rgba(30, 41, 59, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+[data-theme="dark"] .glass-subtle {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+[data-theme="dark"] .glass-card {
+  background: rgba(30, 41, 59, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+[data-theme="dark"] .glass-header {
+  background: rgba(15, 23, 42, 0.78);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+[data-theme="dark"] .glass-sidebar {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+[data-theme="dark"] .gradient-border-top {
+  background: var(--bg-card);
+}
+
+[data-theme="dark"] .glass-modal {
+  background: rgba(30, 41, 59, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+/* ── Element Plus Dark Mode CSS Variable Override ── */
+[data-theme="dark"] {
+  --el-color-primary: #A78BFA;
+  --el-color-primary-light-3: #7C3AED;
+  --el-color-primary-light-5: #6D28D9;
+  --el-color-primary-light-7: #5B21B6;
+  --el-color-primary-light-8: #4C1D95;
+  --el-color-primary-light-9: #3B1F7C;
+  --el-color-primary-dark-2: #C4B5FD;
+
+  --el-bg-color: #1E293B;
+  --el-bg-color-overlay: #1E293B;
+  --el-bg-color-page: #0F172A;
+  --el-text-color-primary: #F1F5F9;
+  --el-text-color-regular: #CBD5E1;
+  --el-text-color-secondary: #94A3B8;
+  --el-text-color-placeholder: #64748B;
+  --el-border-color: rgba(148, 163, 184, 0.12);
+  --el-border-color-light: rgba(148, 163, 184, 0.08);
+  --el-border-color-lighter: rgba(148, 163, 184, 0.06);
+  --el-border-color-extra-light: rgba(148, 163, 184, 0.04);
+  --el-fill-color: rgba(148, 163, 184, 0.08);
+  --el-fill-color-light: rgba(148, 163, 184, 0.06);
+  --el-fill-color-blank: transparent;
+  --el-mask-color: rgba(2, 6, 23, 0.7);
+  --el-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --el-box-shadow-light: 0 1px 3px rgba(0, 0, 0, 0.4);
+}

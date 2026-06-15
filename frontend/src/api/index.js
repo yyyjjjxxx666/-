@@ -135,10 +135,9 @@ export const getRecentActivities = () => api.get('/home/recent-activities')
 
 // ── Knowledge Base ──
 export const kbAddDoc = (data) => api.post('/ai/knowledge/add', data)
+export const kbUploadDoc = (formData) => api.post('/ai/knowledge/upload', formData)
 export const kbQuery = (params) => api.get('/ai/knowledge/query', { params })
 export const kbDeleteDoc = (id) => api.delete(`/ai/knowledge/${id}`)
 export const kbListDocs = () => api.get('/ai/knowledge/documents')
 export const kbStats = () => api.get('/ai/knowledge/stats')
-export const kbAsk = (data) => api.post('/ai/knowledge/ask', data)
-
 export default api

@@ -1,0 +1,74 @@
+/* ============================================
+   Named Transition Classes (for Vue <Transition>)
+   ============================================ */
+
+/* ── Page Fade + Slide ── */
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+.page-fade-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* ── Fade Only ── */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-base);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* ── Slide Up ── */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+.slide-up-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+/* ── Scale ── */
+.scale-enter-active,
+.scale-leave-active {
+  transition: opacity var(--transition-base), transform var(--transition-spring);
+}
+.scale-enter-from {
+  opacity: 0;
+  transform: scale(0.95);
+}
+.scale-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* ── List Stagger (applied to <TransitionGroup>) ── */
+.list-enter-active {
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+.list-leave-active {
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+.list-enter-from {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
+}
+.list-move {
+  transition: transform var(--transition-base);
+}

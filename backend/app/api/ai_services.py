@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, Request, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -468,13 +468,80 @@ def _kb_or_error():
 def kb_add_doc(data: dict, user: User = Depends(get_current_user)):
     """Add a document to the knowledge base. Requires {title, content, category?}."""
     _kb_or_error()
-    if user.role.value not in ("admin", "president"):
-        raise HTTPException(status_code=403, detail="仅管理员和负责人可上传文档")
+    if user.role.value not in ("admin",):
+        raise HTTPException(status_code=403, detail="仅管理员可上传文档")
     result = add_document(
         title=data.get("title", "Untitled"),
         content=data.get("content", ""),
         category=data.get("category", "general"),
     )
+    return result
+
+
+@router.post("/knowledge/upload")
+def kb_upload_doc(
+    file: UploadFile = File(...),
+    title: str = Form("Untitled"),
+    category: str = Form("general"),
+    user: User = Depends(get_current_user),
+):
+    """Upload a document file to the knowledge base. Supports .docx .doc .md .txt .pdf."""
+    _kb_or_error()
+    if user.role.value not in ("admin",):
+        raise HTTPException(status_code=403, detail="仅管理员可上传文档")
+
+    # Read file bytes once
+    file_bytes = file.file.read()
+    filename = file.filename or "document"
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+    # Parse document based on extension
+    content = ""
+    try:
+        if ext in ("txt", "md"):
+            content = file_bytes.decode("utf-8", errors="replace")
+        elif ext == "docx":
+            from io import BytesIO
+            from docx import Document
+            doc = Document(BytesIO(file_bytes))
+            paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+            content = "\n".join(paragraphs)
+        elif ext == "doc":
+            # Try python-docx (works for some .doc files saved as .docx internally)
+            try:
+                from io import BytesIO
+                from docx import Document
+                doc = Document(BytesIO(file_bytes))
+                paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+                content = "\n".join(paragraphs)
+            except Exception:
+                raise HTTPException(
+                    status_code=400,
+                    detail="无法解析 .doc 文件，请将其转换为 .docx 格式后再上传",
+                )
+        elif ext == "pdf":
+            from io import BytesIO
+            from pypdf import PdfReader
+            reader = PdfReader(BytesIO(file_bytes))
+            pages = [page.extract_text() or "" for page in reader.pages]
+            content = "\n".join(pages)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"不支持的文件格式: .{ext}，支持的格式: docx, doc, md, txt, pdf",
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"文件解析失败: {str(e)}")
+
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="无法从文档中提取到文本内容")
+
+    # Use filename as title fallback
+    doc_title = title if title and title != "Untitled" else filename.rsplit(".", 1)[0]
+
+    result = add_document(title=doc_title, content=content, category=category)
     return result
 
 
@@ -490,8 +557,8 @@ def kb_query_endpoint(q: str, top_k: int = 5):
 def kb_delete_doc(doc_id: str, user: User = Depends(get_current_user)):
     """Delete a document from the knowledge base."""
     _kb_or_error()
-    if user.role.value not in ("admin", "president"):
-        raise HTTPException(status_code=403, detail="仅管理员和负责人可删除")
+    if user.role.value not in ("admin",):
+        raise HTTPException(status_code=403, detail="仅管理员可删除")
     delete_document(doc_id)
     return {"message": "已删除"}
 
@@ -508,22 +575,6 @@ def kb_stats():
     """Get knowledge base statistics."""
     _kb_or_error()
     return get_collection_stats()
-
-
-@router.post("/knowledge/ask")
-async def kb_ask(data: dict):
-    """Ask a question with RAG-enhanced AI response."""
-    _kb_or_error()
-    question = data.get("question", "")
-    results = kb_query(question, top_k=3)
-    from ..services.deepseek import chat_completion
-    if results:
-        context = "\n\n".join([r["content"] for r in results])
-        prompt = f"基于以下知识库内容回答问题。\n\n知识库内容：\n{context}\n\n问题：{question}\n\n请根据知识库内容回答，如果知识库中没有相关信息请如实说明。回答控制在200字以内。"
-    else:
-        prompt = f"问题：{question}\n\n知识库为空，请说明暂无相关资料。"
-    answer = await chat_completion([{"role": "user", "content": prompt}], max_tokens=400)
-    return {"question": question, "answer": answer, "sources": [r["metadata"]["title"] for r in results]}
 
 
 @router.post("/face-recognize")
