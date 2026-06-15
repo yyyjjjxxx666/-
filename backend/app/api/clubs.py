@@ -43,7 +43,7 @@ def create_club(data: ClubCreate, user: User = Depends(get_current_user), db: Se
     if db.query(Club).filter(Club.name == data.name).first():
         raise HTTPException(status_code=400, detail="社团名称已存在")
 
-    club = Club(name=data.name, description=data.description, president_id=user.id, tags=data.tags)
+    club = Club(name=data.name, description=data.description, president_id=user.id, tags=data.tags, logo_url=data.logo_url)
     db.add(club)
     user.club_id = club.id
     db.commit()
