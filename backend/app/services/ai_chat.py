@@ -13,6 +13,7 @@ _SYSTEM_PROMPT = """你是"社团管理系统"的AI智能小助手。帮助用�
 async def stream_chat_response(
     question: str,
     user_context: dict | None = None,
+    history: list[dict] | None = None,
 ) -> AsyncGenerator[str, None]:
     """Yield SSE data chunks from DeepSeek streaming response."""
     if not settings.DEEPSEEK_API_KEY:
@@ -50,10 +51,10 @@ async def stream_chat_response(
         if parts:
             user_info = f"\n用户信息：{'，'.join(parts)}"
 
-    messages = [
-        {"role": "system", "content": system},
-        {"role": "user", "content": question + user_info},
-    ]
+    messages = [{"role": "system", "content": system}]
+    if history:
+        messages.extend(history)
+    messages.append({"role": "user", "content": question + user_info})
 
     try:
         async with httpx.AsyncClient(timeout=30) as client:

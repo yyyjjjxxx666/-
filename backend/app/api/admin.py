@@ -101,6 +101,92 @@ def admin_stats(user: User = Depends(get_current_user), db: Session = Depends(ge
     }
 
 
+@router.get("/all-approvals")
+def all_approvals(status: str = None, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return all approval records (all statuses) across clubs, activities, dissolutions, join requests."""
+    from ..models.club import JoinRequest
+    items = []
+
+    # Clubs
+    club_q = db.query(Club)
+    if status:
+        club_q = club_q.filter(Club.status == status)
+    for c in club_q.order_by(Club.created_at.desc()).all():
+        applicant = db.query(User).get(c.president_id)
+        items.append({
+            "type": "club",
+            "type_label": "社团审批",
+            "id": c.id,
+            "name": c.name,
+            "status": c.status.value if hasattr(c.status, 'value') else c.status,
+            "applicant": applicant.real_name or applicant.username if applicant else "未知",
+            "applicant_id": c.president_id,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+            "reviewed_at": None,
+        })
+
+    # Activities
+    act_q = db.query(Activity)
+    if status:
+        act_q = act_q.filter(Activity.status == status)
+    for a in act_q.order_by(Activity.created_at.desc()).all():
+        applicant = db.query(User).get(a.creator_id) if hasattr(a, 'creator_id') else None
+        items.append({
+            "type": "activity",
+            "type_label": "活动审批",
+            "id": a.id,
+            "name": a.title,
+            "status": a.status.value if hasattr(a.status, 'value') else a.status,
+            "applicant": applicant.real_name or applicant.username if applicant else "未知",
+            "applicant_id": a.creator_id if hasattr(a, 'creator_id') else None,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+            "reviewed_at": None,
+        })
+
+    # Dissolutions (clubs with dissolve_pending or already processed)
+    diss_status = status if status else None
+    diss_q = db.query(Club).filter(Club.status.in_(["dissolve_pending"]))
+    # Include all clubs for dissolution history - but only those that ever had dissolve status
+    # For simplicity, we only show dissolve_pending ones (already-disolved are deleted)
+    for c in diss_q.order_by(Club.created_at.desc()).all():
+        applicant = db.query(User).get(c.president_id)
+        items.append({
+            "type": "dissolution",
+            "type_label": "注销审批",
+            "id": c.id,
+            "name": c.name,
+            "status": "dissolve_pending",
+            "applicant": applicant.real_name or applicant.username if applicant else "未知",
+            "applicant_id": c.president_id,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+            "reviewed_at": None,
+        })
+
+    # Join Requests
+    jr_q = db.query(JoinRequest)
+    if status:
+        jr_q = jr_q.filter(JoinRequest.status == status)
+    for jr in jr_q.order_by(JoinRequest.created_at.desc()).all():
+        req_user = db.query(User).get(jr.user_id)
+        club = db.query(Club).get(jr.club_id)
+        items.append({
+            "type": "join_request",
+            "type_label": "入社申请",
+            "id": jr.id,
+            "name": f"{req_user.real_name or req_user.username if req_user else '未知'} → {club.name if club else '未知社团'}",
+            "status": jr.status,
+            "applicant": req_user.real_name or req_user.username if req_user else "未知",
+            "applicant_id": jr.user_id,
+            "created_at": jr.created_at.isoformat() if jr.created_at else None,
+            "reviewed_at": jr.reviewed_at.isoformat() if jr.reviewed_at else None,
+        })
+
+    # Sort by created_at desc
+    items.sort(key=lambda x: x["created_at"] or "", reverse=True)
+
+    return {"items": items, "total": len(items)}
+
+
 @router.get("/ai-insights")
 async def ai_insights(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """AI-generated narrative insights for admin dashboard."""

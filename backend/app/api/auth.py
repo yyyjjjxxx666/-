@@ -1,12 +1,64 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from ..models import get_db
 from ..models.user import User, UserRole
+from ..models.club import Club
 from ..schemas import UserRegister, UserLogin, Token, UserInfo, UpdateInterestsRequest, UserMeInfo, ResetPasswordRequest
 from ..core.security import hash_password, verify_password, create_access_token, decode_access_token
 
 router = APIRouter(tags=["认证"])
+
+
+def get_current_user(authorization: str = __import__("fastapi").Header(...), db: Session = Depends(get_db)) -> User:
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="未登录")
+    payload = decode_access_token(authorization[7:])
+    if not payload:
+        raise HTTPException(status_code=401, detail="登录已过期")
+    return db.query(User).get(int(payload["sub"]))
+
+
+@router.get("/search-users")
+def search_users(
+    q: str = Query(..., min_length=1, description="搜索关键词（姓名/用户名/学号）"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Search users by real_name, username, or student_id. Admin/president only."""
+    if user.role.value not in ("admin", "president"):
+        raise HTTPException(status_code=403, detail="仅管理员或社团负责人可搜索用户")
+
+    pattern = f"%{q}%"
+    users = (
+        db.query(User)
+        .filter(
+            or_(
+                User.real_name.ilike(pattern),
+                User.username.ilike(pattern),
+                User.student_id.ilike(pattern),
+            )
+        )
+        .limit(20)
+        .all()
+    )
+
+    results = []
+    for u in users:
+        club_name = None
+        if u.club_id:
+            club = db.query(Club).get(u.club_id)
+            club_name = club.name if club else None
+        results.append({
+            "id": u.id,
+            "username": u.username,
+            "real_name": u.real_name,
+            "student_id": u.student_id,
+            "role": u.role.value if hasattr(u.role, "value") else str(u.role),
+            "club_name": club_name,
+        })
+    return results
 
 
 @router.post("/register", response_model=UserInfo)
@@ -46,15 +98,6 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
         real_name=user.real_name,
         club_id=user.club_id,
     )
-
-
-def get_current_user(authorization: str = __import__("fastapi").Header(...), db: Session = Depends(get_db)) -> User:
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="未登录")
-    payload = decode_access_token(authorization[7:])
-    if not payload:
-        raise HTTPException(status_code=401, detail="登录已过期")
-    return db.query(User).get(int(payload["sub"]))
 
 
 @router.get("/me", response_model=dict)
