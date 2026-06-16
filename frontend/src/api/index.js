@@ -94,6 +94,14 @@ export const getAIInsights = () => api.get('/admin/ai-insights')
 export const approveActivityApi = (id) => api.put(`/admin/activities/${id}/approve`)
 export const rejectActivityApi = (id) => api.put(`/admin/activities/${id}/reject`)
 export const rejectClubApi = (id) => api.put(`/admin/clubs/${id}/reject`)
+export const getAllApprovals = (params) => api.get('/admin/all-approvals', { params })
+
+// ── AI Chat ──
+export const getConversations = () => api.get('/ai/conversations')
+export const createConversation = () => api.post('/ai/conversations')
+export const getMessages = (id) => api.get(`/ai/conversations/${id}/messages`)
+export const deleteConversation = (id) => api.delete(`/ai/conversations/${id}`)
+export const updateConversationTitle = (id, title) => api.put(`/ai/conversations/${id}/title`, { title })
 
 // ── Club operations ──
 export const leaveClub = (id) => api.post(`/clubs/${id}/leave`)
@@ -112,6 +120,7 @@ export const getMe = () => api.get('/auth/me')
 export const updateInterests = (data) => api.put('/auth/interests', data)
 export const checkFace = (userId) => api.get(`/auth/check-face/${userId}`)
 export const resetPassword = (data) => api.post('/auth/reset-password', data)
+export const searchUsers = (q) => api.get('/auth/search-users', { params: { q } })
 
 // ── Upload ──
 export const uploadFile = (file) => {

@@ -54,6 +54,11 @@ const routes = [
         component: () => import('../views/AIRecommend.vue'),
       },
       {
+        path: 'ai-chat',
+        name: 'AIChat',
+        component: () => import('../views/AIChat.vue'),
+      },
+      {
         path: 'checkin',
         name: 'Checkin',
         component: () => import('../views/Checkin.vue'),

@@ -9,6 +9,58 @@
 
     <div class="glass-card approval-card" style="cursor:default">
       <el-tabs v-model="activeTab" class="modern-tabs">
+        <el-tab-pane name="all">
+          <template #label>
+            <span class="tab-label"><el-icon :size="16"><List /></el-icon> 全部审批</span>
+          </template>
+
+          <!-- Filters -->
+          <div class="all-filters">
+            <el-select v-model="allStatusFilter" placeholder="全部状态" clearable size="small" style="width:140px" @change="fetchAllApprovals">
+              <el-option label="全部状态" value="" />
+              <el-option label="待审批" value="pending" />
+              <el-option label="已通过" value="approved" />
+              <el-option label="已拒绝" value="rejected" />
+            </el-select>
+            <el-select v-model="allTypeFilter" placeholder="全部类型" clearable size="small" style="width:140px" @change="fetchAllApprovals">
+              <el-option label="全部类型" value="" />
+              <el-option label="社团审批" value="club" />
+              <el-option label="活动审批" value="activity" />
+              <el-option label="注销审批" value="dissolution" />
+              <el-option label="入社申请" value="join_request" />
+            </el-select>
+            <span class="filter-count">共 {{ filteredAllItems.length }} 条记录</span>
+          </div>
+
+          <el-table :data="filteredAllItems" border empty-text="暂无审批记录" class="modern-table" max-height="520">
+            <el-table-column label="类型" width="110">
+              <template #default="{ row }">
+                <el-tag :type="typeTagType(row.type)" size="small" effect="light">{{ row.type_label }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="name" label="名称" show-overflow-tooltip>
+              <template #default="{ row }">
+                <el-link v-if="row.type === 'club'" type="primary" @click="$router.push(`/clubs/${row.id}`)">{{ row.name }}</el-link>
+                <el-link v-else-if="row.type === 'activity'" type="primary" @click="$router.push(`/activities/${row.id}`)">{{ row.name }}</el-link>
+                <span v-else>{{ row.name }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="90">
+              <template #default="{ row }">
+                <el-tag :type="statusTagType(row.status)" size="small" effect="light">{{ statusLabel(row.status) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="applicant" label="申请人" width="100" />
+            <el-table-column prop="created_at" label="申请时间" width="160" />
+            <el-table-column prop="reviewed_at" label="审批时间" width="160">
+              <template #default="{ row }">
+                <span v-if="row.reviewed_at">{{ row.reviewed_at }}</span>
+                <span v-else class="text-muted">-</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
         <el-tab-pane name="clubs">
           <template #label>
             <span class="tab-label"><el-icon :size="16"><HomeFilled /></el-icon> 社团审批</span>
@@ -92,29 +144,63 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getPendingItems, approveClub, approveActivityApi, rejectActivityApi, rejectClubApi } from '../api'
+import { getPendingItems, approveClub, approveActivityApi, rejectActivityApi, rejectClubApi, getAllApprovals } from '../api'
 import api from '../api'
 
-const activeTab = ref('clubs')
+const activeTab = ref('all')
 const pending = reactive({ clubs: [], activities: [], dissolutions: [] })
 
 const fetchPending = async () => {
   try { const { data } = await getPendingItems(); pending.clubs = data.clubs || []; pending.activities = data.activities || []; pending.dissolutions = data.dissolutions || [] } catch {}
 }
-const handleApproveClub = async (id) => { try { await approveClub(id); ElMessage.success('已通过'); fetchPending() } catch {} }
-const handleRejectClub = async (id) => { try { await rejectClubApi(id); ElMessage.success('已拒绝'); fetchPending() } catch {} }
-const handleApproveActivity = async (id) => { try { await approveActivityApi(id); ElMessage.success('已通过'); fetchPending() } catch {} }
-const handleRejectActivity = async (id) => { try { await rejectActivityApi(id); ElMessage.success('已拒绝'); fetchPending() } catch {} }
+const handleApproveClub = async (id) => { try { await approveClub(id); ElMessage.success('已通过'); fetchPending(); fetchAllApprovals() } catch {} }
+const handleRejectClub = async (id) => { try { await rejectClubApi(id); ElMessage.success('已拒绝'); fetchPending(); fetchAllApprovals() } catch {} }
+const handleApproveActivity = async (id) => { try { await approveActivityApi(id); ElMessage.success('已通过'); fetchPending(); fetchAllApprovals() } catch {} }
+const handleRejectActivity = async (id) => { try { await rejectActivityApi(id); ElMessage.success('已拒绝'); fetchPending(); fetchAllApprovals() } catch {} }
 const handleApproveDissolve = async (id) => {
-  try { await ElMessageBox.confirm('确认批准注销该社团？此操作不可撤销。', '二次确认', { type: 'warning' }); await api.put(`/clubs/${id}/approve-dissolve`); ElMessage.success('社团已注销'); fetchPending() } catch {}
+  try { await ElMessageBox.confirm('确认批准注销该社团？此操作不可撤销。', '二次确认', { type: 'warning' }); await api.put(`/clubs/${id}/approve-dissolve`); ElMessage.success('社团已注销'); fetchPending(); fetchAllApprovals() } catch {}
 }
 const handleRejectDissolve = async (id) => {
-  try { await ElMessageBox.confirm('确认拒绝注销申请？', '二次确认', { type: 'warning' }); await api.put(`/clubs/${id}/reject-dissolve`); ElMessage.success('已拒绝注销'); fetchPending() } catch {}
+  try { await ElMessageBox.confirm('确认拒绝注销申请？', '二次确认', { type: 'warning' }); await api.put(`/clubs/${id}/reject-dissolve`); ElMessage.success('已拒绝注销'); fetchPending(); fetchAllApprovals() } catch {}
 }
 
-onMounted(fetchPending)
+// ── All Approvals tab ──
+const allItems = ref([])
+const allStatusFilter = ref('')
+const allTypeFilter = ref('')
+
+const filteredAllItems = computed(() => {
+  let items = allItems.value
+  if (allStatusFilter.value) items = items.filter(i => i.status === allStatusFilter.value)
+  if (allTypeFilter.value) items = items.filter(i => i.type === allTypeFilter.value)
+  return items
+})
+
+const fetchAllApprovals = async () => {
+  try {
+    const params = {}
+    if (allStatusFilter.value) params.status = allStatusFilter.value
+    const { data } = await getAllApprovals(params)
+    allItems.value = data.items || []
+  } catch {}
+}
+
+const typeTagType = (type) => {
+  const map = { club: '', activity: 'primary', dissolution: 'warning', join_request: 'success' }
+  return map[type] || 'info'
+}
+const statusTagType = (status) => {
+  const map = { pending: 'warning', approved: 'success', rejected: 'danger', dissolve_pending: 'warning', registration: 'primary', ongoing: 'primary', finished: 'info' }
+  return map[status] || 'info'
+}
+const statusLabel = (status) => {
+  const map = { pending: '待审批', approved: '已通过', rejected: '已拒绝', dissolve_pending: '待审批', registration: '报名中', ongoing: '进行中', finished: '已结束' }
+  return map[status] || status
+}
+
+onMounted(() => { fetchPending(); fetchAllApprovals() })
 </script>
 
 <style scoped>
@@ -123,6 +209,11 @@ onMounted(fetchPending)
 .page-title { display: flex; align-items: center; gap: 10px; font-size: var(--text-2xl); font-weight: var(--font-bold); color: var(--text-primary); margin: 0; }
 .approval-card { padding: 24px; }
 .tab-label { display: flex; align-items: center; gap: 6px; }
+
+/* Filters */
+.all-filters { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.filter-count { font-size: var(--text-xs); color: var(--text-muted); margin-left: auto; }
+.text-muted { color: var(--text-muted); }
 
 .modern-tabs :deep(.el-tabs__active-bar) { background: var(--gradient-primary) !important; height: 3px !important; border-radius: var(--radius-full); }
 .modern-tabs :deep(.el-tabs__item) { font-size: var(--text-sm); color: var(--text-muted); }

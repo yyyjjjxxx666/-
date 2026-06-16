@@ -90,6 +90,10 @@
             <el-icon :size="18"><Cpu /></el-icon>
             <template #title>AI智能推荐</template>
           </el-menu-item>
+          <el-menu-item index="/ai-chat">
+            <el-icon :size="18"><ChatDotRound /></el-icon>
+            <template #title>AI 助手</template>
+          </el-menu-item>
           <el-menu-item index="/checkin">
             <el-icon :size="18"><Camera /></el-icon>
             <template #title>签到考勤</template>

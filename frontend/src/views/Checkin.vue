@@ -42,13 +42,32 @@
                   <el-tag size="small" round>管理员/负责人</el-tag>
                 </div>
                 <div class="manual-section">
-                  <p class="manual-label">按用户ID签到</p>
+                  <p class="manual-label">搜索用户签到</p>
                   <div class="manual-row">
-                    <el-input-number v-model="manualUserId" :min="1" size="large" style="flex:1" placeholder="用户ID" />
-                    <el-button type="primary" size="large" @click="handleManualCheckinById">
+                    <el-autocomplete
+                      v-model="searchKeyword"
+                      :fetch-suggestions="searchUsersByName"
+                      :trigger-on-focus="false"
+                      placeholder="输入姓名/学号搜索..."
+                      size="large"
+                      style="flex:1"
+                      clearable
+                      @select="onUserSelect"
+                    >
+                      <template #default="{ item }">
+                        <div class="user-search-item">
+                          <span class="user-name">{{ item.value }}</span>
+                          <span class="user-meta">{{ item.student_id || '' }} {{ item.club_name ? '· ' + item.club_name : '' }}</span>
+                        </div>
+                      </template>
+                    </el-autocomplete>
+                    <el-button type="primary" size="large" @click="handleManualCheckin" :disabled="!selectedUserId">
                       <el-icon :size="16"><Select /></el-icon> 签到
                     </el-button>
                   </div>
+                  <p v-if="selectedUserName" class="selected-user-hint">
+                    已选择：<strong>{{ selectedUserName }}</strong> (ID: {{ selectedUserId }})
+                  </p>
                 </div>
               </div>
             </el-col>
@@ -114,7 +133,7 @@
 import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getActivities, faceRecognize, checkin, manualCheckin } from '../api'
+import { getActivities, faceRecognize, checkin, manualCheckin, searchUsers } from '../api'
 import { useUserStore } from '../stores/user'
 
 const userStore = useUserStore(); const route = useRoute()
@@ -122,7 +141,7 @@ const tab = ref('qr'); const activeActivities = ref([])
 
 // QR
 const qrActivityId = ref(null); const qrUrl = ref(''); const checkinCount = ref(0)
-const manualUserId = ref(null)
+const searchKeyword = ref(''); const selectedUserId = ref(null); const selectedUserName = ref('')
 
 // Face
 const checkinVideo = ref(null); const faceActivityId = ref(null)
@@ -139,9 +158,35 @@ const loadQRCode = () => {
   const act = activeActivities.value.find(a => a.id === qrActivityId.value)
   if (act) { qrUrl.value = act.checkin_qr || ''; checkinCount.value = act.current_participants || 0 }
 }
-const handleManualCheckinById = async () => {
-  if (!qrActivityId.value || !manualUserId.value) return ElMessage.warning('请选择活动并输入用户ID')
-  try { await manualCheckin(qrActivityId.value, manualUserId.value, 'qr'); ElMessage.success('手动签到成功'); loadQRCode() } catch (e) { ElMessage.error(e.response?.data?.detail || '签到失败') }
+const searchUsersByName = async (queryString, cb) => {
+  if (!queryString || queryString.trim().length === 0) return cb([])
+  try {
+    const { data } = await searchUsers(queryString.trim())
+    const suggestions = (data || []).map(u => ({
+      value: u.real_name || u.username,
+      id: u.id,
+      student_id: u.student_id || '',
+      club_name: u.club_name || '',
+      username: u.username,
+    }))
+    cb(suggestions)
+  } catch { cb([]) }
+}
+
+const onUserSelect = (item) => {
+  selectedUserId.value = item.id
+  selectedUserName.value = item.value
+}
+
+const handleManualCheckin = async () => {
+  if (!qrActivityId.value) return ElMessage.warning('请选择活动')
+  if (!selectedUserId.value) return ElMessage.warning('请搜索并选择用户')
+  try {
+    await manualCheckin(qrActivityId.value, selectedUserId.value, 'qr')
+    ElMessage.success(`${selectedUserName.value} 签到成功`)
+    searchKeyword.value = ''; selectedUserId.value = null; selectedUserName.value = ''
+    loadQRCode()
+  } catch (e) { ElMessage.error(e.response?.data?.detail || '签到失败') }
 }
 
 // Face
@@ -208,6 +253,11 @@ onBeforeUnmount(() => { stopCamera() })
 .manual-section { margin-top: 12px; }
 .manual-label { color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: 8px; }
 .manual-row { display: flex; gap: 8px; }
+.user-search-item { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.user-name { font-size: var(--text-sm); color: var(--text-primary); }
+.user-meta { font-size: var(--text-xs); color: var(--text-muted); }
+.selected-user-hint { margin-top: 8px; font-size: var(--text-sm); color: var(--color-success-600); }
+[data-theme="dark"] .selected-user-hint { color: var(--color-success-400); }
 
 /* Face */
 .face-panel { margin: 0 auto; }
