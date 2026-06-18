@@ -4,6 +4,20 @@ os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 import sys
+import shutil
+
+# ============================================================
+# First-run auto-config: copy bundled .env.template to .env
+# when running as a frozen PyInstaller exe and no .env exists
+# ============================================================
+if getattr(sys, 'frozen', False):
+    _exe_dir = os.path.dirname(sys.executable)
+    _dest_env = os.path.join(_exe_dir, ".env")
+    if not os.path.exists(_dest_env):
+        _bundled_template = os.path.join(sys._MEIPASS, ".env.template")
+        if os.path.exists(_bundled_template):
+            shutil.copy(_bundled_template, _dest_env)
+
 import webbrowser
 import threading
 import time

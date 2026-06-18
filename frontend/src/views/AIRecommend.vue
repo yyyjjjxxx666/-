@@ -229,7 +229,7 @@ const handleUpload = async () => {
 }
 const handleDeleteDoc = async (id) => { try { await kbDeleteDoc(id); ElMessage.success('已删除'); fetchKBDocs() } catch {} }
 
-onMounted(fetchKBDocs)
+onMounted(() => { if (isAdmin.value) fetchKBDocs() })
 </script>
 
 <style scoped>

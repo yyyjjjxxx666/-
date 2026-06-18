@@ -73,24 +73,27 @@ async def chat_completion(messages: list[dict], max_tokens: int = 800, temperatu
     if not settings.DEEPSEEK_API_KEY:
         return "[AI服务未配置API Key]"
 
-    async with httpx.AsyncClient(timeout=60) as client:
-        resp = await client.post(
-            f"{settings.DEEPSEEK_BASE_URL}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.DEEPSEEK_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": "deepseek-chat",
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-            },
-        )
-        data = resp.json()
-        if resp.status_code != 200:
-            return f"[AI调用失败: {data.get('error', {}).get('message', '未知错误')}]"
-        return data["choices"][0]["message"]["content"]
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                f"{settings.DEEPSEEK_BASE_URL}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.DEEPSEEK_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": "deepseek-chat",
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                },
+            )
+            data = resp.json()
+            if resp.status_code != 200:
+                return f"[AI调用失败: {data.get('error', {}).get('message', '未知错误')}]"
+            return data["choices"][0]["message"]["content"]
+    except Exception as e:
+        return f"[AI调用失败: {str(e)}]"
 
 
 async def recommend_clubs(
@@ -189,7 +192,7 @@ async def recommend_clubs(
             if "highlights" not in r or not isinstance(r.get("highlights"), list):
                 r["highlights"] = []
         return recommendations
-    except (json.JSONDecodeError, KeyError):
+    except Exception:
         return fallback_recommend(user_interests, clubs_data, user_joined_club_ids)
 
 

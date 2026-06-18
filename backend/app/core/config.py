@@ -1,19 +1,24 @@
 from pydantic_settings import BaseSettings
+import sys
+import os
 
 
 class Settings(BaseSettings):
     APP_NAME: str = "社团管理与活动报名系统"
     DEBUG: bool = True
 
-    # Database
+    # Database type: "auto" (detect from credentials), "sqlite" or "mysql"
+    DB_TYPE: str = "auto"
+
+    # SQLite
+    SQLITE_PATH: str = "club_system.db"
+
+    # MySQL (only used when DB_TYPE=mysql, or auto-detected when credentials present)
     DB_HOST: str = "localhost"
     DB_PORT: int = 3306
     DB_USER: str = "root"
     DB_PASSWORD: str = ""
     DB_NAME: str = "club_system"
-
-    # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
 
     # JWT
     SECRET_KEY: str = "change-me-in-production-use-a-random-string"
@@ -30,10 +35,21 @@ class Settings(BaseSettings):
 
     @property
     def DATABASE_URL(self) -> str:
-        return f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        db_type = self.DB_TYPE
+        # Auto-detect: if MySQL credentials are provided, use MySQL; otherwise SQLite
+        if db_type == "auto":
+            db_type = "mysql" if (self.DB_PASSWORD and self.DB_HOST) else "sqlite"
+        if db_type == "mysql":
+            return f"mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        # SQLite: resolve path next to exe when frozen
+        db_path = self.SQLITE_PATH
+        if getattr(sys, 'frozen', False) and not os.path.isabs(db_path):
+            db_path = os.path.join(os.path.dirname(sys.executable), db_path)
+        return f"sqlite:///{db_path}"
 
     class Config:
         env_file = ".env"
+        extra = "ignore"  # ignore deprecated fields in old .env files (e.g. REDIS_URL)
 
 
 settings = Settings()

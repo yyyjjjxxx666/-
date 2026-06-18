@@ -4,6 +4,7 @@ Documents are chunked, embedded, and stored locally.
 """
 
 import os
+import sys
 import hashlib
 from typing import List, Optional
 
@@ -16,8 +17,15 @@ try:
 except ImportError:
     pass
 
-# Paths
-KB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "chroma_data")
+# Paths — resolve to exe directory when frozen (PyInstaller), otherwise relative to backend/
+def _get_kb_dir() -> str:
+    if getattr(sys, 'frozen', False):
+        # Running as PyInstaller exe: put chroma_data next to the exe
+        return os.path.join(os.path.dirname(sys.executable), "chroma_data")
+    else:
+        return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "chroma_data")
+
+KB_DIR = _get_kb_dir()
 os.makedirs(KB_DIR, exist_ok=True)
 
 # Lazy-loaded singletons
@@ -37,11 +45,14 @@ def _get_model():
 
 def _get_collection():
     global _client, _collection
-    if _client is None:
-        _client = chromadb.PersistentClient(path=KB_DIR, settings=ChromaSettings(anonymized_telemetry=False))
-    if _collection is None:
-        _collection = _client.get_or_create_collection(name="club_knowledge")
-    return _collection
+    try:
+        if _client is None:
+            _client = chromadb.PersistentClient(path=KB_DIR, settings=ChromaSettings(anonymized_telemetry=False))
+        if _collection is None:
+            _collection = _client.get_or_create_collection(name="club_knowledge")
+        return _collection
+    except Exception as e:
+        raise RuntimeError(f"知识库初始化失败: {str(e)}")
 
 
 def _chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
