@@ -103,7 +103,21 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=dict)
 def get_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     import os
-    face_registered = bool(user.face_encoding) if user.face_encoding else False
+    # face_encoding 存储的是人脸图片路径，需要同时验证文件是否存在
+    face_registered = False
+    if user.face_encoding:
+        face_path = user.face_encoding
+        if os.path.isfile(face_path):
+            face_registered = True
+        else:
+            # 兼容旧数据：尝试在标准位置查找
+            from ..core.config import settings
+            alt_path = os.path.join(settings.FACES_DIR_ABS, str(user.id), "face.jpg")
+            if os.path.isfile(alt_path):
+                face_registered = True
+                # 静默修复：更新 face_encoding 为标准路径
+                user.face_encoding = alt_path
+                db.commit()
     return {
         "id": user.id, "username": user.username, "role": user.role.value,
         "real_name": user.real_name, "interests": user.interests,
@@ -121,10 +135,21 @@ def update_interests(data: UpdateInterestsRequest, user: User = Depends(get_curr
 
 @router.get("/check-face/{user_id}")
 def check_face(user_id: int, db: Session = Depends(get_db)):
+    import os
+    from ..core.config import settings
     u = db.query(User).get(user_id)
     if not u:
         raise HTTPException(status_code=404, detail="用户不存在")
-    return {"user_id": user_id, "face_registered": bool(u.face_encoding)}
+    # 验证文件是否真实存在
+    face_registered = False
+    if u.face_encoding:
+        if os.path.isfile(u.face_encoding):
+            face_registered = True
+        else:
+            alt_path = os.path.join(settings.FACES_DIR_ABS, str(user_id), "face.jpg")
+            if os.path.isfile(alt_path):
+                face_registered = True
+    return {"user_id": user_id, "face_registered": face_registered}
 
 
 def get_current_user_dep(authorization: str = __import__("fastapi").Header(...), db: Session = Depends(get_db)) -> User:

@@ -111,7 +111,7 @@
             </div>
             <video v-show="!faceError && faceCameraActive" ref="dashboardFaceVideo" autoplay playsinline class="face-video" />
             <img v-if="faceRegistered && !faceCameraActive"
-              :src="`/uploads/faces/${userStore.userInfo.id}/face.jpg`"
+              :src="`/uploads/faces/${userStore.userInfo.id}/face.jpg?t=${faceTimestamp}`"
               alt="已注册人脸"
               class="face-image" />
             <div v-if="!faceRegistered && !faceCameraActive" class="face-placeholder">
@@ -342,6 +342,7 @@ const faceRegMsg = ref('')
 const faceRegOk = ref(false)
 const faceCameraActive = ref(false)
 const faceError = ref('')
+const faceTimestamp = ref(Date.now())
 let dashboardFaceStream = null
 const userInterests = ref('')
 const interestInput = ref('')
@@ -395,7 +396,7 @@ const captureAndRegisterFace = async () => {
       const { data } = await faceRegister({ user_id: userStore.userInfo.id, image_data: base64 })
       faceRegMsg.value = data.message || (data.success ? '注册成功' : '失败')
       faceRegOk.value = data.success
-      if (data.success) { faceRegistered.value = true; ElMessage.success('人脸注册成功！') }
+      if (data.success) { faceRegistered.value = true; faceTimestamp.value = Date.now(); ElMessage.success('人脸注册成功！') }
     } catch { faceRegMsg.value = '人脸注册请求失败'; faceRegOk.value = false }
     stopDashboardCamera(); faceRegLoading.value = false
   } else { await startFaceCamera() }

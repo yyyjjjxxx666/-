@@ -1,10 +1,21 @@
 """海报图片生成：将AI生成的文案渲染到专业模板上，输出PNG。"""
 import os
+import sys
 import math
 import random
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 from ..core.config import settings
+
+
+def _get_poster_abs_dir() -> str:
+    """Return absolute poster output directory, matching the /static mount in main.py."""
+    if getattr(sys, 'frozen', False):
+        base = sys._MEIPASS
+    else:
+        # backend/app/services/poster.py → backend/app/services → backend/app → backend/
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base, settings.POSTER_DIR)
 
 # ── 8 套配色主题 ──
 _COLOR_THEMES = [
@@ -160,7 +171,8 @@ def _hex_luminance(hex_str: str) -> float:
 
 def generate_poster(content: dict, output_filename: str, design: dict = None) -> str:
     """根据AI生成的文案内容生成专业海报。优先使用LLM动态配色，否则随机选预设。返回文件路径。"""
-    os.makedirs(settings.POSTER_DIR, exist_ok=True)
+    poster_dir = _get_poster_abs_dir()
+    os.makedirs(poster_dir, exist_ok=True)
 
     # ── Resolve colours: LLM design > preset theme ──
     if design and all(k in design for k in ("bg_hex", "accent_hex", "accent2_hex")):
@@ -377,10 +389,11 @@ def generate_poster(content: dict, output_filename: str, design: dict = None) ->
     draw.text((W - 142, qr_box_y + 38), "扫码\n签到", fill=c_footer_text, font=_find_font(14))
 
     # Save
-    output_path = os.path.join(settings.POSTER_DIR, output_filename)
+    output_path = os.path.join(poster_dir, output_filename)
     img = img.convert("RGB")
     img.save(output_path, "PNG", quality=95)
-    return output_path
+    # Return URL-friendly relative path (matching /static mount in main.py)
+    return os.path.join(settings.POSTER_DIR, output_filename).replace("\\", "/")
 
 
 def _wrap_text(text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list:

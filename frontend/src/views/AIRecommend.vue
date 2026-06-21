@@ -100,6 +100,81 @@
               </div>
             </div>
       </el-tab-pane>
+
+      <!-- Poster Generation Tab -->
+      <el-tab-pane name="poster">
+        <template #label>
+          <span class="tab-label"><el-icon :size="16"><Picture /></el-icon> AI海报生成</span>
+        </template>
+
+        <div class="glass-card poster-panel" style="cursor:default">
+          <div class="section-title">
+            <el-icon :size="18"><Brush /></el-icon>
+            <span>AI 海报生成器</span>
+          </div>
+          <el-form :model="posterForm" label-position="top">
+            <el-form-item label="活动标题" required>
+              <el-input v-model="posterForm.title" placeholder="请输入活动标题..." size="large" />
+            </el-form-item>
+            <el-form-item label="活动描述">
+              <el-input v-model="posterForm.description" type="textarea" :rows="3" placeholder="描述活动内容，AI将用于生成海报文案..." />
+            </el-form-item>
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="分类">
+                  <el-select v-model="posterForm.category" style="width:100%" size="large">
+                    <el-option label="社团活动" value="社团活动" />
+                    <el-option label="学术讲座" value="学术讲座" />
+                    <el-option label="文艺演出" value="文艺演出" />
+                    <el-option label="体育赛事" value="体育赛事" />
+                    <el-option label="志愿服务" value="志愿服务" />
+                    <el-option label="其他" value="其他" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="地点">
+                  <el-input v-model="posterForm.location" placeholder="活动地点" size="large" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="开始时间">
+                  <el-date-picker v-model="posterForm.start_time" type="datetime" style="width:100%" placeholder="选择开始时间" />
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="结束时间">
+                  <el-date-picker v-model="posterForm.end_time" type="datetime" style="width:100%" placeholder="选择结束时间" />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-form>
+          <el-button type="primary" size="large" :loading="posterLoading" @click="handleGeneratePoster" style="margin-top:8px">
+            <el-icon :size="16"><MagicStick /></el-icon>
+            AI 生成海报
+          </el-button>
+        </div>
+
+        <div v-if="posterUrl" class="glass-card poster-result" style="margin-top:16px;cursor:default">
+          <div class="section-title">
+            <el-icon :size="18"><Picture /></el-icon>
+            <span>海报预览</span>
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <el-button size="small" :loading="posterLoading" @click="handleGeneratePoster">
+                <el-icon :size="14"><Refresh /></el-icon> 重新生成
+              </el-button>
+              <el-button size="small" type="success" @click="downloadPoster">
+                <el-icon :size="14"><Download /></el-icon> 下载海报
+              </el-button>
+            </div>
+          </div>
+          <div class="poster-preview-container">
+            <img :src="posterUrl" class="poster-img" alt="AI生成海报" />
+          </div>
+        </div>
+      </el-tab-pane>
     </el-tabs>
 
     <!-- Upload Document Dialog -->
@@ -148,7 +223,7 @@
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
-import { aiRecommend, aiRecommendFeedback, aiGenerateCopy, kbAddDoc, kbUploadDoc, kbDeleteDoc, kbListDocs, kbStats } from '../api'
+import { aiRecommend, aiRecommendFeedback, aiGenerateCopy, aiGeneratePosterPreview, kbAddDoc, kbUploadDoc, kbDeleteDoc, kbListDocs, kbStats } from '../api'
 import { useUserStore } from '../stores/user'
 
 const userStore = useUserStore(); const activeTab = ref('recommend')
@@ -229,6 +304,50 @@ const handleUpload = async () => {
 }
 const handleDeleteDoc = async (id) => { try { await kbDeleteDoc(id); ElMessage.success('已删除'); fetchKBDocs() } catch {} }
 
+// ── AI Poster Generation ──
+const posterForm = reactive({
+  title: '',
+  description: '',
+  category: '社团活动',
+  location: '',
+  start_time: '',
+  end_time: '',
+})
+const posterLoading = ref(false)
+const posterUrl = ref('')
+
+const handleGeneratePoster = async () => {
+  if (!posterForm.title.trim()) return ElMessage.warning('请输入活动标题')
+  posterLoading.value = true
+  try {
+    const payload = {
+      title: posterForm.title.trim(),
+      description: posterForm.description.trim(),
+      category: posterForm.category,
+      location: posterForm.location.trim(),
+    }
+    if (posterForm.start_time) {
+      payload.start_time = posterForm.start_time instanceof Date ? posterForm.start_time.toISOString() : posterForm.start_time
+    }
+    if (posterForm.end_time) {
+      payload.end_time = posterForm.end_time instanceof Date ? posterForm.end_time.toISOString() : posterForm.end_time
+    }
+    const { data } = await aiGeneratePosterPreview(payload)
+    posterUrl.value = data.poster_url
+    ElMessage.success('海报生成成功')
+  } catch {} finally { posterLoading.value = false }
+}
+
+const downloadPoster = () => {
+  if (!posterUrl.value) return
+  const a = document.createElement('a')
+  a.href = posterUrl.value
+  a.download = `poster_${Date.now()}.png`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+}
+
 onMounted(() => { if (isAdmin.value) fetchKBDocs() })
 </script>
 
@@ -291,4 +410,21 @@ onMounted(() => { if (isAdmin.value) fetchKBDocs() })
 .file-info { text-align: left; flex: 1; }
 .file-info strong { display: block; color: var(--text-primary); font-size: var(--text-sm); word-break: break-all; }
 .file-size { color: var(--text-muted); font-size: var(--text-xs); }
+
+/* ── AI Poster Generation ── */
+.poster-panel { padding: 24px; }
+.poster-result { padding: 24px; }
+.poster-preview-container {
+  margin-top: 16px;
+  text-align: center;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+.poster-img {
+  max-width: 100%;
+  max-height: 600px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
 </style>

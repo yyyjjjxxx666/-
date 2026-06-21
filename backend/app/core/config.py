@@ -47,6 +47,37 @@ class Settings(BaseSettings):
             db_path = os.path.join(os.path.dirname(sys.executable), db_path)
         return f"sqlite:///{db_path}"
 
+    @property
+    def BASE_DIR(self) -> str:
+        """应用根目录（开发模式为backend/，exe模式为_MEIPASS临时目录）"""
+        if getattr(sys, 'frozen', False):
+            return sys._MEIPASS
+        # 开发模式：config.py 在 app/core/ 下，上两级即 backend/
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+    @property
+    def DATA_DIR(self) -> str:
+        """持久数据目录（exe模式下为exe同级目录，开发模式下同BASE_DIR）。
+        上传文件、人脸图片、生成的海报等运行时数据存放于此，exe重启后不丢失。"""
+        if getattr(sys, 'frozen', False):
+            return os.path.dirname(sys.executable)
+        return self.BASE_DIR
+
+    @property
+    def UPLOAD_DIR_ABS(self) -> str:
+        """上传目录的绝对路径（与main.py中StaticFiles挂载的目录一致）"""
+        return os.path.join(self.DATA_DIR, self.UPLOAD_DIR)
+
+    @property
+    def FACES_DIR_ABS(self) -> str:
+        """人脸图片存储的绝对路径"""
+        return os.path.join(self.UPLOAD_DIR_ABS, "faces")
+
+    @property
+    def STATIC_DIR_ABS(self) -> str:
+        """静态文件目录的绝对路径（face_model、posters等运行时生成的文件）"""
+        return os.path.join(self.DATA_DIR, "static")
+
     class Config:
         # 优先使用环境变量指定的绝对路径 (exe模式下由main.py设置)
         # 回退到当前目录下的 .env (开发模式)

@@ -389,10 +389,20 @@ async def generate_poster_preview(data: PreviewPosterRequest):
 def face_register(data: FaceRegisterRequest, db: Session = Depends(get_db)):
     if not data.image_data:
         return {"success": False, "message": "未提供图片数据"}
+    if not data.user_id:
+        return {"success": False, "message": "未提供用户ID"}
     import base64, os
-    img_path = os.path.join(settings.UPLOAD_DIR, f"face_{data.user_id}.jpg")
-    with open(img_path, "wb") as f:
-        f.write(base64.b64decode(data.image_data))
+    try:
+        # 使用统一的绝对路径，确保与 StaticFiles 挂载目录一致
+        uploads_dir = settings.UPLOAD_DIR_ABS
+        os.makedirs(uploads_dir, exist_ok=True)
+        img_path = os.path.join(uploads_dir, f"face_{data.user_id}.jpg")
+        with open(img_path, "wb") as f:
+            f.write(base64.b64decode(data.image_data))
+    except (base64.binascii.Error, ValueError) as e:
+        return {"success": False, "message": f"图片数据格式错误: {str(e)}"}
+    except OSError as e:
+        return {"success": False, "message": f"图片保存失败: {str(e)}"}
     result = register_face(db, data.user_id, img_path)
     return result
 
@@ -580,9 +590,15 @@ def kb_stats():
 @router.post("/face-recognize")
 def face_recognize(data: FaceRegisterRequest, db: Session = Depends(get_db)):
     import base64, os, tempfile
-    img_path = os.path.join(tempfile.gettempdir(), "face_checkin.jpg")
-    with open(img_path, "wb") as f:
-        f.write(base64.b64decode(data.image_data))
+    try:
+        img_path = os.path.join(settings.UPLOAD_DIR_ABS, "face_checkin.jpg")
+        os.makedirs(settings.UPLOAD_DIR_ABS, exist_ok=True)
+        with open(img_path, "wb") as f:
+            f.write(base64.b64decode(data.image_data))
+    except (base64.binascii.Error, ValueError) as e:
+        return {"success": False, "message": f"图片数据格式错误: {str(e)}"}
+    except OSError as e:
+        return {"success": False, "message": f"图片保存失败: {str(e)}"}
 
     users = db.query(User).filter(User.face_encoding.isnot(None)).all()
     known = [{"user_id": u.id, "face_encoding": u.face_encoding} for u in users]

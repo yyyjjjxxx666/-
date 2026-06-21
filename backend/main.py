@@ -97,11 +97,14 @@ app.include_router(api_router, prefix="/api")
 BASE_DIR = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 
 # Ensure directories exist
-static_dir = os.path.join(BASE_DIR, "static")
+static_dir = settings.STATIC_DIR_ABS
 posters_dir = os.path.join(static_dir, "posters")
-uploads_dir = os.path.join(BASE_DIR, settings.UPLOAD_DIR)
+uploads_dir = settings.UPLOAD_DIR_ABS
+faces_dir = settings.FACES_DIR_ABS
+os.makedirs(static_dir, exist_ok=True)
 os.makedirs(posters_dir, exist_ok=True)
 os.makedirs(uploads_dir, exist_ok=True)
+os.makedirs(faces_dir, exist_ok=True)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=static_dir), name="static")

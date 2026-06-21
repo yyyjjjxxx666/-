@@ -1,5 +1,8 @@
 # Course reference documents
 doc/
+output/
+scripts/
+源程序/
 
 # Python
 __pycache__/
