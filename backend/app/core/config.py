@@ -48,7 +48,9 @@ class Settings(BaseSettings):
         return f"sqlite:///{db_path}"
 
     class Config:
-        env_file = ".env"
+        # 优先使用环境变量指定的绝对路径 (exe模式下由main.py设置)
+        # 回退到当前目录下的 .env (开发模式)
+        env_file = os.environ.get("PYDANTIC_SETTINGS_ENV_FILE", ".env")
         extra = "ignore"  # ignore deprecated fields in old .env files (e.g. REDIS_URL)
 
 

@@ -5,6 +5,9 @@ os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 import sys
 import shutil
+import signal
+import atexit
+import time
 
 # ============================================================
 # First-run auto-config: copy bundled .env.template to .env
@@ -17,10 +20,17 @@ if getattr(sys, 'frozen', False):
         _bundled_template = os.path.join(sys._MEIPASS, ".env.template")
         if os.path.exists(_bundled_template):
             shutil.copy(_bundled_template, _dest_env)
+            print(f"[首次运行] 已生成配置文件: {_dest_env}")
+            print("[首次运行] 请编辑该文件中的数据库配置和API密钥后重新启动程序")
+            print("[首次运行] 程序将在 5 秒后退出...")
+            time.sleep(5)
+            sys.exit(0)
+    # 关键：让 pydantic-settings 使用 .env 的绝对路径
+    # 避免因工作目录不同而找不到 .env 文件
+    os.environ["PYDANTIC_SETTINGS_ENV_FILE"] = _dest_env
 
 import webbrowser
 import threading
-import time
 import mimetypes
 from contextlib import asynccontextmanager
 
@@ -145,6 +155,44 @@ if os.path.exists(frontend_dir):
     app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
 
 
+# ============================================================
+# Graceful shutdown: release port immediately when console closed
+# ============================================================
+_uvicorn_server = None
+
+def _cleanup():
+    """释放资源，确保端口立即回收"""
+    global _uvicorn_server
+    if _uvicorn_server:
+        _uvicorn_server.should_exit = True
+
+def _signal_handler(signum, frame):
+    _cleanup()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, _signal_handler)
+signal.signal(signal.SIGTERM, _signal_handler)
+
+# Windows 控制台关闭事件 (CTRL_CLOSE_EVENT)
+# 使用 ctypes 调用 kernel32.SetConsoleCtrlHandler（无需安装额外包）
+if sys.platform == "win32":
+    import ctypes
+    _WIN_CTRL_CLOSE_EVENT = 2
+    _HandlerRoutine = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_ulong)
+
+    @_HandlerRoutine
+    def _win_handler(ctrl_type):
+        if ctrl_type == _WIN_CTRL_CLOSE_EVENT:
+            _cleanup()
+            return True
+        return False
+
+    if not ctypes.windll.kernel32.SetConsoleCtrlHandler(_win_handler, True):
+        pass  # 注册失败时回退到 signal 处理器
+
+atexit.register(_cleanup)
+
+
 def open_browser():
     time.sleep(1.5)
     webbrowser.open("http://localhost:8000")
@@ -154,4 +202,8 @@ if __name__ == "__main__":
     import uvicorn
     if getattr(sys, 'frozen', False):
         threading.Thread(target=open_browser, daemon=True).start()
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    # 使用 uvicorn.Server 实例以便能调用 should_exit 优雅关闭
+    _uvicorn_config = uvicorn.Config(app, host="0.0.0.0", port=8000)
+    _uvicorn_server = uvicorn.Server(_uvicorn_config)
+    _uvicorn_server.run()
